@@ -209,9 +209,10 @@ async function syncToDrive() {
             mode: 'no-cors', // GAS zahtijeva no-cors za jednostavne POST-ove
             body: JSON.stringify(payload)
         });
-        alert("Zahtjev poslan! Ako je GAS ispravno konfiguriran, podaci su spremljeni i email je na putu.");
+        // Maknut alert da ne smeta pri downloadu
+        console.log("Sync uspješan!");
     } catch (err) {
-        alert("Greška pri komunikaciji s Cloudom: " + err.message);
+        console.error("Sync greška: " + err.message);
     }
 }
 
@@ -225,6 +226,9 @@ async function downloadExcelReport() {
     }
 
     try {
+        // AUTOMATSKI SYNC PRIJE DOWNLOADA
+        await syncToDrive();
+
         const workbook = new ExcelJS.Workbook();
         workbook.creator = 'Iskaznica Akustike Web';
         workbook.created = new Date();
@@ -278,48 +282,71 @@ async function downloadExcelReport() {
             { width: 8 }, { width: 35 }, { width: 15 }, { width: 15 }, { width: 12 }, { width: 10 }, { width: 30 }
         ];
 
+        let totalMasaCalc = 0;
+        let maxRwLab = 0;
+        let dLwSum = 0;
+
         for (let i = 1; i <= 8; i++) {
             const rowNum = startRow + i;
             const row = calcSheet.getRow(rowNum);
-            
-            // Mapiramo lokalno spremljene slojeve u tablicu
             const inputLayer = layers && layers[i - 1] ? layers[i - 1] : null;
 
             row.getCell(1).value = i;
-            
             const valCell = row.getCell(2);
-            if (inputLayer) valCell.value = inputLayer.materialName;
+            if (inputLayer) {
+                valCell.value = inputLayer.materialName;
+                row.getCell(3).value = inputLayer.thickness;
+                
+                // Ručni izračun za statički prikaz u Excelu
+                const mat = materials.find(m => m.name === inputLayer.materialName);
+                if (mat) {
+                    const mass = mat.rho * (inputLayer.thickness / 100);
+                    totalMasaCalc += mass;
+                    dLwSum += mat.dlw;
+                    const rwLab = mat.rw_lab > 0 ? mat.rw_lab : Math.max(10, 20 * Math.log10(mass) + 5);
+                    maxRwLab = Math.max(maxRwLab, rwLab);
+                }
+            }
+
             valCell.dataValidation = {
                 type: 'list',
                 allowBlank: true,
                 formulae: [`=BAZA_MATERIJALA!$B$2:$B$${materials.length + 1}`]
             };
 
-            if (inputLayer) row.getCell(3).value = inputLayer.thickness;
-
-            // Formule
-            row.getCell(4).value = { formula: `IF(B${rowNum}="",0,VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$D$${materials.length + 1},2,FALSE)*(C${rowNum}/100))` };
-            row.getCell(5).value = { formula: `IF(AND(B${rowNum}<>"",VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$E$${materials.length + 1},3,FALSE)>0),VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$E$${materials.length + 1},3,FALSE),IF(B${rowNum}<>"",MAX(10, 20*LOG10(D${rowNum}) + 5),0))` };
-            row.getCell(6).value = { formula: `IF(B${rowNum}="",0,VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$E$${materials.length + 1},4,FALSE))` };
+            // Formule i vrijednosti (kombinirano)
+            row.getCell(4).value = { 
+                formula: `IF(B${rowNum}="",0,VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$D$${materials.length + 1},2,FALSE)*(C${rowNum}/100))`,
+                result: inputLayer ? (materials.find(m => m.name === inputLayer.materialName)?.rho * (inputLayer.thickness / 100)) : 0
+            };
+            row.getCell(5).value = { 
+                formula: `IF(AND(B${rowNum}<>"",VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$E$${materials.length + 1},3,FALSE)>0),VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$E$${materials.length + 1},3,FALSE),IF(B${rowNum}<>"",MAX(10, 20*LOG10(D${rowNum}) + 5),0))`
+            };
+            row.getCell(6).value = { 
+                formula: `IF(B${rowNum}="",0,VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$E$${materials.length + 1},4,FALSE))`,
+                result: inputLayer ? (materials.find(m => m.name === inputLayer.materialName)?.dlw) : 0
+            };
         }
 
         const resRow = startRow + 10;
         calcSheet.getCell(`C${resRow}`).value = 'UKUPNA MASA [kg/m2]:';
-        calcSheet.getCell(`D${resRow}`).value = { formula: `SUM(D4:D11)` };
+        calcSheet.getCell(`D${resRow}`).value = { formula: `SUM(D4:D11)`, result: totalMasaCalc };
         calcSheet.getCell(`D${resRow}`).font = { bold: true };
 
         const rwRow = resRow + 1;
         calcSheet.getCell(`C${rwRow}`).value = 'RW_LAB (Teoretski):';
-        calcSheet.getCell(`D${rwRow}`).value = { formula: `MAX(E4:E11, 20*LOG10(D${resRow})+10)` };
+        const finalRwLab = Math.max(maxRwLab, 20 * Math.log10(totalMasaCalc) + 10);
+        calcSheet.getCell(`D${rwRow}`).value = { formula: `MAX(E4:E11, 20*LOG10(D${resRow})+10)`, result: finalRwLab };
 
         const rprimeRow = rwRow + 1;
         calcSheet.getCell(`C${rprimeRow}`).value = "R'W (TERENSKI -3dB):";
-        calcSheet.getCell(`D${rprimeRow}`).value = { formula: `D${rwRow}-3` };
+        calcSheet.getCell(`D${rprimeRow}`).value = { formula: `D${rwRow}-3`, result: finalRwLab - 3 };
         calcSheet.getCell(`D${rprimeRow}`).font = { bold: true, color: { argb: 'FF0000FF' } };
 
         const lprimeRow = rprimeRow + 1;
         calcSheet.getCell(`C${lprimeRow}`).value = "L'NW (UDARNA BUKA):";
-        calcSheet.getCell(`D${lprimeRow}`).value = { formula: `IF(D${rwRow}<40,"N/A",80 - SUM(F4:F11) - 0.1*D${resRow})` };
+        const finalLnw = finalRwLab < 40 ? "N/A" : (80 - dLwSum - 0.1 * totalMasaCalc);
+        calcSheet.getCell(`D${lprimeRow}`).value = { formula: `IF(D${rwRow}<40,"N/A",80 - SUM(F4:F11) - 0.1*D${resRow})`, result: finalLnw };
 
         // 3. ISKAZNICA SHEET
         const iskaznica = workbook.addWorksheet('ISKAZNICA');
@@ -334,15 +361,26 @@ async function downloadExcelReport() {
         iskaznica.getCell('B4').value = new Date().toLocaleDateString('hr-HR');
 
         iskaznica.getCell('A6').value = 'PRORAČUNATI ELEMENTI:';
-        iskaznica.getRow(7).values = ['Element', 'Putanja', 'Zahtjev (dB)', 'Projektirano (dB)', 'STATUS'];
+        iskaznica.getRow(7).values = ['Element', 'Vrijednost', 'Zahtjev (dB)', 'Projektirano (dB)', 'STATUS'];
         iskaznica.getRow(7).font = { bold: true };
         
-        iskaznica.getRow(8).values = ['Zid / Element', 'Proracun!D15', '52', { formula: 'PRORACUN!D15' }, { formula: 'IF(D8>=52,"PROLAZI","NE PROLAZI")' }];
+        const rwStatus = (finalRwLab - 3) >= 52 ? "PROLAZI" : "NE PROLAZI";
+        iskaznica.getRow(8).values = [
+            'Zid / Element', 'R\'w', '52', 
+            { formula: 'PRORACUN!D15', result: finalRwLab - 3 }, 
+            { formula: 'IF(D8>=52,"PROLAZI","NE PROLAZI")', result: rwStatus }
+        ];
+
         if (layers && layers.some(l => l.materialName.includes('estrih') || l.materialName.includes('EPS-T'))) {
-            iskaznica.getRow(9).values = ['Međukatna konstr.', 'Proracun!D16', '55', { formula: 'PRORACUN!D16' }, { formula: 'IF(D9<=55,"PROLAZI","NE PROLAZI")' }];
+            const lnwStatus = finalLnw <= 55 ? "PROLAZI" : "NE PROLAZI";
+            iskaznica.getRow(9).values = [
+                'Međukatna konstr.', 'L\'nw', '55', 
+                { formula: 'PRORACUN!D16', result: finalLnw }, 
+                { formula: 'IF(D9<=55,"PROLAZI","NE PROLAZI")', result: lnwStatus }
+            ];
         }
 
-        iskaznica.columns = [{ width: 25 }, { width: 15 }, { width: 15 }, { width: 20 }, { width: 15 }];
+        iskaznica.columns = [{ width: 25 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
 
         // GENERIRANJE DATOTEKE (U MEMORIJI PREGLEDNIKA)
         const buffer = await workbook.xlsx.writeBuffer();
@@ -363,14 +401,6 @@ async function downloadExcelReport() {
     }
 }
 
-function exportData() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(layers, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "iskaznica_akustike.json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-}
+
 
 window.onload = init;
