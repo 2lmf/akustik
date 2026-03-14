@@ -82,10 +82,22 @@ function sendAcousticEmail(data) {
 
 function getRho(name) {
   var db = {
-    'Armirani beton': 2500, 'Puna opeka': 1800, 'Porotherm 25 S': 800, 'Porotherm 20 AKU': 1200, 
-    'Ytong 20': 550, 'EPS-T (elastificirani)': 15, 'XPS 300 kPa': 33, 'XPS 500 kPa': 42, 
-    'XPS 700 kPa': 48, 'Kamena vuna Floor': 100, 'Cementni estrih': 2200, 
-    'Tekući estrih (Anhidrit)': 2400, 'Keramika / Pločice': 2300, 'Parket / Laminat': 700
+    'Armirani beton': 2500,
+    'Puna opeka': 1800,
+    'Porotherm 25 S': 800,
+    'Porotherm 20 AKU': 1200, 
+    'Ytong 20': 550,
+    'EPS-T (zvučni)': 15,
+    'EPS 100': 20,
+    'XPS 300 kPa': 33,
+    'XPS 500 kPa': 42,
+    'XPS 700 kPa': 48,
+    'Kamena vuna Floor': 100,
+    'Čepasta ploča H30': 20,
+    'Cementni estrih': 2200,
+    'Anhidritni estrih': 2400,
+    'Keramika': 2300,
+    'Parket 14mm': 700
   };
   return db[name] || 0;
 }

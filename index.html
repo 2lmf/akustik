@@ -113,7 +113,12 @@
                     <div class="floating-btn-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
                         <button class="btn btn-primary" onclick="syncToDrive()">☁️ Spremi i Pošalji</button>
                         <button class="btn btn-primary" style="background-color: var(--success); color: white;" onclick="downloadExcelReport()">📊 Preuzmi Excel Iskaznicu</button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <button class="btn btn-outline" onclick="downloadJSON()">💾 Preuzmi JSON</button>
+                            <button class="btn btn-outline" onclick="triggerUploadJSON()">📂 Učitaj JSON</button>
+                        </div>
                     </div>
+                    <input type="file" id="json-upload-input" accept=".json" style="display: none;" onchange="uploadJSON(event)">
                 </div>
             </div>
         </div>
