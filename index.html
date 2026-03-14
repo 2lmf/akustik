@@ -68,6 +68,51 @@
                             <label class="res-label">Dopušteni L'nw [dB]</label>
                             <input type="number" id="req-lnw" value="55" oninput="calculateAll()">
                         </div>
+                <div class="card" style="margin-top: 1.5rem; border: 1px dashed var(--border-color); background: rgba(0,0,0,0.02);">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem;">📑 Podaci za Iskaznicu (Prilog E)</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label class="res-label" style="font-weight: bold;">1. Investitor</label>
+                            <input type="text" id="prj-investitor" placeholder="Ime/Naziv investitora">
+                        </div>
+                        <div>
+                            <label class="res-label" style="font-weight: bold;">2. Oznaka projekta</label>
+                            <input type="text" id="prj-oznaka" placeholder="Npr. 123/2026">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label class="res-label" style="font-weight: bold;">3a. Naziv zgrade</label>
+                            <input type="text" id="prj-naziv" placeholder="Npr. Stambena zgrada A">
+                        </div>
+                        <div>
+                            <label class="res-label" style="font-weight: bold;">3b. Vrsta zgrade</label>
+                            <input type="text" id="prj-vrsta" placeholder="Npr. Višestambena">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label class="res-label" style="font-weight: bold;">3c. Namjena zgrade</label>
+                            <input type="text" id="prj-namjena" placeholder="Npr. Stanovanje">
+                        </div>
+                        <div>
+                            <label class="res-label" style="font-weight: bold;">3d. Lokacija (Adresa/k.č.)</label>
+                            <input type="text" id="prj-lokacija" placeholder="Npr. Ilica 1, Zagreb">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label class="res-label" style="font-weight: bold;">Mjesto i Datum</label>
+                            <input type="text" id="prj-datum" placeholder="Npr. Zagreb, ožujak 2026.">
+                        </div>
+                        <div>
+                            <label class="res-label" style="font-weight: bold;">4. Temelj proračuna</label>
+                            <select id="prj-temelj">
+                                <option value="a">(a) Rezultati mjerenja inicijalne buke</option>
+                                <option value="b" selected>(b) Projektantska proračunska procjena</option>
+                                <option value="c">(c) Najviša dopuštena razina vanjske buke</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>

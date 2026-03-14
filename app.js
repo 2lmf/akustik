@@ -347,39 +347,140 @@ async function downloadExcelReport() {
             result: finalLnw 
         };
 
-        // 3. ISKAZNICA SHEET
+        // 3. ISKAZNICA SHEET (PRILOG E)
         const iskaznica = workbook.addWorksheet('ISKAZNICA');
-        iskaznica.getCell('A1').value = 'ISKAZNICA AKUSTIČKIH SVOJSTAVA ZGRADE';
-        iskaznica.getCell('A1').font = { bold: true, size: 16 };
+        iskaznica.getColumn(1).width = 5;
+        iskaznica.getColumn(2).width = 40;
+        iskaznica.getColumn(3).width = 25;
+        iskaznica.getColumn(4).width = 20;
+        iskaznica.getColumn(5).width = 20;
+        iskaznica.getColumn(6).width = 15;
+
+        // Header
+        iskaznica.mergeCells('A1:F1');
+        iskaznica.getCell('A1').value = 'PRILOG E';
+        iskaznica.getCell('A1').alignment = { horizontal: 'center' };
         
-        iskaznica.getCell('A3').value = 'Građevina:';
-        iskaznica.getCell('B3').value = buildingName;
-        iskaznica.getCell('B3').font = { bold: true };
+        iskaznica.mergeCells('A2:F2');
+        const mainTitle = iskaznica.getCell('A2');
+        mainTitle.value = 'ISKAZNICA O AKUSTIČKIM SVOJSTVIMA ZGRADE';
+        mainTitle.font = { bold: true, size: 14 };
+        mainTitle.alignment = { horizontal: 'center' };
 
-        iskaznica.getCell('A4').value = 'Datum kreiranja:';
-        iskaznica.getCell('B4').value = new Date().toLocaleDateString('hr-HR');
+        // Metadata section
+        let currRow = 4;
+        const addSection = (label, value) => {
+            iskaznica.getCell(`A${currRow}`).value = label;
+            iskaznica.getCell(`A${currRow}`).font = { bold: true };
+            iskaznica.mergeCells(`B${currRow}:F${currRow}`);
+            iskaznica.getCell(`B${currRow}`).value = value || '';
+            iskaznica.getCell(`B${currRow}`).border = { bottom: { style: 'thin' } };
+            currRow++;
+        };
 
-        iskaznica.getCell('A6').value = 'PRORAČUNATI ELEMENTI:';
-        iskaznica.getRow(7).values = ['Element', 'Vrijednost', 'Zahtjev (dB)', 'Projektirano (dB)', 'STATUS'];
-        iskaznica.getRow(7).font = { bold: true };
+        addSection('1. INVESTITOR', document.getElementById('prj-investitor').value);
+        addSection('2. OZNAKA PROJEKTA', document.getElementById('prj-oznaka').value);
+        currRow++;
+
+        iskaznica.getCell(`A${currRow}`).value = '3. OPIS ZGRADE';
+        iskaznica.getCell(`A${currRow}`).font = { bold: true };
+        currRow++;
+
+        const addSubSection = (label, value) => {
+            iskaznica.getCell(`A${currRow}`).value = label;
+            iskaznica.mergeCells(`B${currRow}:F${currRow}`);
+            iskaznica.getCell(`B${currRow}`).value = value || '';
+            iskaznica.getCell(`B${currRow}`).border = { bottom: { style: 'thin' } };
+            currRow++;
+        };
+
+        addSubSection('Naziv zgrade ili dijela zgrade', document.getElementById('prj-naziv').value || document.getElementById('project-name').value);
+        addSubSection('Vrsta zgrade', document.getElementById('prj-vrsta').value);
+        addSubSection('Namjena zgrade', document.getElementById('prj-namjena').value);
+        addSubSection('Lokacija zgrade', document.getElementById('prj-lokacija').value);
+        addSubSection('Mjesto, mjesec i godina', document.getElementById('prj-datum').value);
+        currRow += 2;
+
+        // Section 4
+        iskaznica.getCell(`A${currRow}`).value = '4. ZAŠTITA OD VANJSKIH IZVORA BUKE';
+        iskaznica.getCell(`A${currRow}`).font = { bold: true };
+        currRow++;
+        const temelj = document.getElementById('prj-temelj').value;
+        iskaznica.mergeCells(`A${currRow}:F${currRow}`);
+        iskaznica.getCell(`A${currRow}`).value = `Proračun se temelji na: ${
+            temelj === 'a' ? '(a) mjerenju inicijalne buke' : 
+            temelj === 'b' ? '(b) proračunskoj procjeni stvarnog opterećenja' : 
+            '(c) najvišoj dopuštenoj razini vanjske buke'
+        }`;
+        currRow += 2;
+
+        // Section 5 & 6 (Dynamic Tables)
+        const addTableHeaders = (title) => {
+            iskaznica.mergeCells(`A${currRow}:F${currRow}`);
+            iskaznica.getCell(`A${currRow}`).value = title;
+            iskaznica.getCell(`A${currRow}`).font = { bold: true };
+            currRow++;
+            
+            const headRow = iskaznica.getRow(currRow);
+            headRow.values = ['', 'Građevni dio ili pregrada', 'Oznaka vel.', 'Traženo', 'Projektirano', 'Izmjereno'];
+            headRow.font = { bold: true };
+            headRow.eachCell(c => c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} });
+            currRow++;
+        };
+
+        const isWall = document.getElementById('const-type').value === 'wall';
         
-        const rwStatus = (maxRwLabVal - 3) >= 52 ? "PROLAZI" : "NE PROLAZI";
-        iskaznica.getRow(8).values = [
-            'Zid / Element', 'R\'w', '52', 
-            { formula: 'PRORACUN!D15', result: maxRwLabVal - 3 }, 
-            { formula: 'IF(D8>=52,"PROLAZI","NE PROLAZI")', result: rwStatus }
-        ];
-
-        if (layers && layers.some(l => l.materialName.includes('estrih') || l.materialName.includes('EPS-T'))) {
-            const lnwStatus = finalLnw <= 55 ? "PROLAZI" : "NE PROLAZI";
-            iskaznica.getRow(9).values = [
-                'Međukatna konstr.', 'L\'nw', '55', 
-                { formula: 'PRORACUN!D16', result: finalLnw }, 
-                { formula: 'IF(D9<=55,"PROLAZI","NE PROLAZI")', result: lnwStatus }
-            ];
+        // Table 5 (External)
+        addTableHeaders('5. ZVUČNA IZOLACIJA VANJSKIH GRAĐEVNIH DIJELOVA');
+        if (isWall) {
+            const r = iskaznica.getRow(currRow);
+            r.values = ['1', document.getElementById('prj-naziv').value || 'Vanjski zid', "R'w [dB]", document.getElementById('req-rw').value, { formula: 'PRORACUN!D15', result: maxRwLabVal - 3 }, ''];
+            r.eachCell(c => c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} });
+            currRow++;
         }
+        currRow += 2;
 
-        iskaznica.columns = [{ width: 25 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
+        // Table 6 (Internal)
+        addTableHeaders('6. ZVUČNA IZOLACIJA UNUTARNJIH GRAĐEVNIH DIJELOVA');
+        if (!isWall) {
+            // First row for Rw
+            let r1 = iskaznica.getRow(currRow);
+            r1.values = ['1', document.getElementById('prj-naziv').value || 'Međukatna konstrukcija', "R'w [dB]", document.getElementById('req-rw').value, { formula: 'PRORACUN!D15', result: maxRwLabVal - 3 }, ''];
+            r1.eachCell(c => c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} });
+            currRow++;
+            // Second row for Lnw
+            let r2 = iskaznica.getRow(currRow);
+            const lnZeroExcel = 164 - 35 * Math.log10(baseMassExcel || 1);
+            const finalLnw = Math.round(lnZeroExcel - dLwSum + 2);
+            r2.values = ['2', document.getElementById('prj-naziv').value || 'Međukatna konstrukcija', "L'nw [dB]", document.getElementById('req-lnw').value, { formula: 'PRORACUN!D16', result: finalLnw }, ''];
+            r2.eachCell(c => c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} });
+            currRow++;
+        }
+        currRow += 2;
+
+        // Sections 7, 8 (Placeholders)
+        const addEmptySection = (title) => {
+            iskaznica.getCell(`A${currRow}`).value = title;
+            iskaznica.getCell(`A${currRow}`).font = { bold: true };
+            currRow += 2;
+        };
+        addEmptySection('7. ZVUČNA IZOLACIJA OD BUKE SERVISNE OPREME');
+        addEmptySection('8. PROSTORNA AKUSTIKA I ZAŠTITA OD ODJEKA');
+
+        // Section 9
+        iskaznica.getCell(`A${currRow}`).value = '9. ODGOVORNOST ZA PROJEKTIRANE VRIJEDNOSTI';
+        iskaznica.getCell(`A${currRow}`).font = { bold: true };
+        currRow++;
+        const signs = ['Projektant arhitektonskog dijela', 'Projektant građevinskog dijela', 'Projektant strojarskog dijela', 'Glavni projektant zgrade'];
+        signs.forEach(s => {
+            iskaznica.getCell(`A${currRow}`).value = s;
+            iskaznica.mergeCells(`B${currRow}:D${currRow}`);
+            iskaznica.getCell(`B${currRow}`).border = { bottom: { style: 'thin' } };
+            iskaznica.getCell(`E${currRow}`).value = '(Potpis)';
+            currRow++;
+        });
+
+        iskaznica.columns = [{ width: 35 }, { width: 35 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
 
         // GENERIRANJE DATOTEKE (U MEMORIJI PREGLEDNIKA)
         const buffer = await workbook.xlsx.writeBuffer();
@@ -410,6 +511,15 @@ function downloadJSON() {
         reqRw: document.getElementById('req-rw').value,
         reqLnw: document.getElementById('req-lnw').value,
         email: document.getElementById('user-email').value,
+        // Prilog E metadata
+        investitor: document.getElementById('prj-investitor').value,
+        oznaka: document.getElementById('prj-oznaka').value,
+        naziv: document.getElementById('prj-naziv').value,
+        vrsta: document.getElementById('prj-vrsta').value,
+        namjena: document.getElementById('prj-namjena').value,
+        lokacija: document.getElementById('prj-lokacija').value,
+        datum: document.getElementById('prj-datum').value,
+        temelj: document.getElementById('prj-temelj').value,
         layers: layers
     };
     
@@ -443,6 +553,16 @@ function uploadJSON(event) {
             if (data.reqRw) document.getElementById('req-rw').value = data.reqRw;
             if (data.reqLnw) document.getElementById('req-lnw').value = data.reqLnw;
             if (data.email) document.getElementById('user-email').value = data.email;
+            
+            // Prilog E metadata
+            if (data.investitor) document.getElementById('prj-investitor').value = data.investitor;
+            if (data.oznaka) document.getElementById('prj-oznaka').value = data.oznaka;
+            if (data.naziv) document.getElementById('prj-naziv').value = data.naziv;
+            if (data.vrsta) document.getElementById('prj-vrsta').value = data.vrsta;
+            if (data.namjena) document.getElementById('prj-namjena').value = data.namjena;
+            if (data.lokacija) document.getElementById('prj-lokacija').value = data.lokacija;
+            if (data.datum) document.getElementById('prj-datum').value = data.datum;
+            if (data.temelj) document.getElementById('prj-temelj').value = data.temelj;
             
             renderLayers();
             calculateAll();
