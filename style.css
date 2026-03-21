@@ -151,17 +151,21 @@ td {
 select,
 input {
     width: 100%;
-    background: #0d1117;
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    padding: 0.5rem;
-    border-radius: 6px;
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.75rem;
+    border-radius: 8px;
     outline: none;
+    font-family: inherit;
+    transition: all 0.2s;
 }
 
 select:focus,
 input:focus {
-    border-color: var(--info);
+    border-color: var(--primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .btn {
@@ -333,4 +337,31 @@ input:focus {
     display: flex;
     gap: 1rem;
     margin-top: 1.5rem;
+}
+
+/* Prilog E Specifics */
+.prilog-e-card {
+    margin-top: 2rem;
+    border: 1px dashed var(--border);
+    background: #fdfdfd;
+}
+
+.prilog-e-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 600px) {
+    .prilog-e-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Fix Lints */
+header h1 {
+    background: linear-gradient(90deg, var(--primary), var(--success));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
