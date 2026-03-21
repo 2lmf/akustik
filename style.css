@@ -344,12 +344,20 @@ input:focus {
     margin-top: 2rem;
     border: 1px dashed var(--border);
     background: #fdfdfd;
+    width: 100%;
+    padding: 2rem;
 }
 
 .prilog-e-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+    .prilog-e-grid {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 @media (max-width: 600px) {
