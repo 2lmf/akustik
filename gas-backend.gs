@@ -10,20 +10,33 @@ function doPost(e) {
     var sheet = ss.getSheets()[0];
     
     if (sheet.getLastRow() == 0) {
-      sheet.appendRow(["Datum", "Građevina", "Slojevi", "Rw (dB)", "Lnw (dB)", "Email"]);
+      sheet.appendRow(["Datum", "Tip", "Projekt/Građevina", "Podaci (JSON)", "Rezultat 1", "Rezultat 2", "Email"]);
     }
     
-    sheet.appendRow([
-      new Date(),
-      data.buildingName || "Novi projekt",
-      JSON.stringify(data.layers),
-      data.resultRw,
-      data.resultLnw || "N/A",
-      data.email
-    ]);
-
-    if (data.email) {
-      sendAcousticEmail(data);
+    if (data.type === 'troskovnik') {
+      sheet.appendRow([
+        new Date(),
+        "TROŠKOVNIK",
+        data.project || "Novi projekt",
+        JSON.stringify(data.data),
+        data.summary.beton,
+        data.summary.oplata + " | " + data.summary.armatura,
+        data.email
+      ]);
+    } else {
+      // Postojeći tip (Akustika)
+      sheet.appendRow([
+        new Date(),
+        "AKUSTIKA",
+        data.buildingName || "Novi projekt",
+        JSON.stringify(data.layers),
+        data.resultRw,
+        data.resultLnw || "N/A",
+        data.email
+      ]);
+      if (data.email) {
+        sendAcousticEmail(data);
+      }
     }
     
     return ContentService.createTextOutput(JSON.stringify({

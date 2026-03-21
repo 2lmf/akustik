@@ -1,14 +1,14 @@
 :root {
-    --bg-color: #0d1117;
-    --card-bg: #161b22;
-    --border-color: #30363d;
-    --text-primary: #f0f6fc;
-    --text-secondary: #8b949e;
-    --accent-primary: #2ea043;
-    --accent-secondary: #238636;
-    --danger: #da3633;
-    --info: #388bfd;
-    --glass: rgba(255, 255, 255, 0.05);
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success: #059669;
+    --danger: #dc2626;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --radius: 12px;
 }
 
 * {
@@ -18,21 +18,74 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
     line-height: 1.6;
-    padding: 2rem;
+    padding: 1rem;
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1100px;
     margin: 0 auto;
 }
 
-header {
+/* Tabs Navigation */
+.tabs-nav {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--card-bg);
+    padding: 0.5rem;
+    border-radius: var(--radius);
     margin-bottom: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 1rem;
+    z-index: 100;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+header {
     text-align: center;
+    margin-bottom: 2.5rem;
 }
 
 header h1 {
@@ -95,7 +148,8 @@ td {
     border-bottom: 1px solid var(--border-color);
 }
 
-select, input {
+select,
+input {
     width: 100%;
     background: #0d1117;
     border: 1px solid var(--border-color);
@@ -105,7 +159,8 @@ select, input {
     outline: none;
 }
 
-select:focus, input:focus {
+select:focus,
+input:focus {
     border-color: var(--info);
 }
 
@@ -138,6 +193,95 @@ select:focus, input:focus {
 
 .btn-outline:hover {
     background: var(--glass);
+}
+
+/* Troškovnik Elements */
+.troskovnik-row {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+}
+
+.element-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    gap: 1rem;
+}
+
+.input-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    width: 250px;
+}
+
+.element-dims {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.element-dims input {
+    width: 50px;
+    padding: 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    text-align: center;
+}
+
+.element-description {
+    padding: 0 1rem 1rem 1rem;
+}
+
+.element-description textarea {
+    width: 100%;
+    height: 80px;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: vertical;
+    background: #fdfdfd;
+}
+
+.preset-select {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+}
+
+.small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .element-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .input-name {
+        width: 100%;
+    }
+
+    .element-dims {
+        width: 100%;
+        justify-content: space-between;
+    }
 }
 
 .results-panel {

@@ -1,175 +1,309 @@
 <!DOCTYPE html>
 <html lang="hr">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iskaznica Akustike - Web App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arch-Toolkit | Pametni alati za arhitekte</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="assets/icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="container">
+        <nav class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('akustika')">🔊 Akustika</button>
+            <button class="tab-btn" onclick="switchTab('troskovnik')">🏗️ Troškovnik</button>
+            <button class="tab-btn" onclick="switchTab('settings')">⚙️ Postavke</button>
+        </nav>
+
         <header>
-            <h1>Iskaznica Akustičkih Svojstava</h1>
-            <p>Automatizirani proračun prema Tehničkom propisu NN 71/2025</p>
+            <h1>Arch-Toolkit</h1>
+            <p id="app-subtitle">Iskaznica Akustičkih Svojstava (NN 71/2025)</p>
         </header>
 
-        <div class="main-grid">
-            <!-- Table Section -->
-            <div class="card">
-                <h2>🏗️ Parametri Konstrukcije</h2>
-                <table id="layers-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 50px;">#</th>
-                            <th>Materijal</th>
-                            <th style="width: 120px;">Debljina (cm)</th>
-                            <th style="width: 100px;">Masa (kg/m²)</th>
-                            <th style="width: 50px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="layers-body">
-                        <!-- Rows will be added here -->
-                    </tbody>
-                </table>
-                <button class="btn btn-outline" onclick="addLayer()">+ Dodaj Sloj</button>
+        <!-- TAB: AKUSTIKA -->
+        <div id="tab-akustika" class="tab-content active">
+            <div class="main-grid">
+                <!-- Table Section -->
+                <div class="card">
+                    <h2>🏗️ Parametri Konstrukcije</h2>
+                    <table id="layers-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Materijal</th>
+                                <th style="width: 120px;">Debljina (cm)</th>
+                                <th style="width: 100px;">Masa (kg/m²)</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="layers-body">
+                            <!-- Rows will be added here -->
+                        </tbody>
+                    </table>
+                    <button class="btn btn-outline" onclick="addLayer()">+ Dodaj Sloj</button>
 
-                <div style="margin-top: 2rem;">
-                    <h2>🏢 Podaci o zgradi i Zahtjevi</h2>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <label class="res-label">Kategorija zgrade (Preseti)</label>
-                            <select id="building-category" onchange="applyPreset()">
-                                <option value="custom">-- Ručni unos --</option>
-                                <option value="stambena" selected>Stambena zgrada (Spavaće sobe)</option>
-                                <option value="skola">Škole (Učionice)</option>
-                                <option value="bolnica">Bolnice (Bolesničke sobe)</option>
-                                <option value="ured">Uredi</option>
-                            </select>
+                    <div style="margin-top: 2rem;">
+                        <h2>🏢 Podaci o zgradi i Zahtjevi</h2>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <label class="res-label">Kategorija zgrade (Preseti)</label>
+                                <select id="building-category" onchange="applyPreset()">
+                                    <option value="custom">-- Ručni unos --</option>
+                                    <option value="stambena" selected>Stambena zgrada (Spavaće sobe)</option>
+                                    <option value="skola">Škole (Učionice)</option>
+                                    <option value="bolnica">Bolnice (Bolesničke sobe)</option>
+                                    <option value="ured">Uredi</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="res-label">Naziv građevine / Pozivije</label>
+                                <input type="text" id="project-name" placeholder="Npr. Stambena zgrada A">
+                            </div>
                         </div>
-                        <div>
-                            <label class="res-label">Naziv građevine / Pozivije</label>
-                            <input type="text" id="project-name" placeholder="Npr. Stambena zgrada A">
-                        </div>
-                    </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <label class="res-label">Tip proračuna</label>
-                            <select id="const-type" onchange="calculateAll()">
-                                <option value="wall">Zid (Zračna izolacija)</option>
-                                <option value="floor">Pod (Zračna + Udarna)</option>
-                            </select>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <label class="res-label">Tip proračuna</label>
+                                <select id="const-type" onchange="calculateAll()">
+                                    <option value="wall">Zid (Zračna izolacija)</option>
+                                    <option value="floor">Pod (Zračna + Udarna)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="res-label">Traženi R'w [dB]</label>
+                                <input type="number" id="req-rw" value="52" oninput="calculateAll()">
+                            </div>
+                            <div>
+                                <label class="res-label">Dopušteni L'nw [dB]</label>
+                                <input type="number" id="req-lnw" value="55" oninput="calculateAll()">
+                            </div>
+                            <div class="card"
+                                style="margin-top: 1.5rem; border: 1px dashed var(--border-color); background: rgba(0,0,0,0.02);">
+                                <h3 style="font-size: 1rem; margin-bottom: 1rem;">📑 Podaci za Iskaznicu (Prilog E)</h3>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                    <div>
+                                        <label class="res-label" style="font-weight: bold;">1. Investitor</label>
+                                        <input type="text" id="prj-investitor" placeholder="Ime/Naziv investitora">
+                                    </div>
+                                    <div>
+                                        <label class="res-label" style="font-weight: bold;">2. Oznaka projekta</label>
+                                        <input type="text" id="prj-oznaka" placeholder="Npr. 123/2026">
+                                    </div>
+                                </div>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                    <div>
+                                        <label class="res-label" style="font-weight: bold;">3a. Naziv zgrade</label>
+                                        <input type="text" id="prj-naziv" placeholder="Npr. Stambena zgrada A">
+                                    </div>
+                                    <div>
+                                        <label class="res-label" style="font-weight: bold;">3b. Vrsta zgrade</label>
+                                        <input type="text" id="prj-vrsta" placeholder="Npr. Višestambena">
+                                    </div>
+                                </div>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                    <div>
+                                        <label class="res-label" style="font-weight: bold;">3c. Namjena zgrade</label>
+                                        <input type="text" id="prj-namjena" placeholder="Npr. Stanovanje">
+                                    </div>
+                                    <div>
+                                        <label class="res-label" style="font-weight: bold;">3d. Lokacija
+                                            (Adresa/k.č.)</label>
+                                        <input type="text" id="prj-lokacija" placeholder="Npr. Ilica 1, Zagreb">
+                                    </div>
+                                </div>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                    <div>
+                                        <label class="res-label" style="font-weight: bold;">Mjesto i Datum</label>
+                                        <input type="text" id="prj-datum" placeholder="Npr. Zagreb, ožujak 2026.">
+                                    </div>
+                                    <div>
+                                        <label class="res-label" style="font-weight: bold;">4. Temelj proračuna</label>
+                                        <select id="prj-temelj">
+                                            <option value="a">(a) Rezultati mjerenja inicijalne buke</option>
+                                            <option value="b" selected>(b) Projektantska proračunska procjena</option>
+                                            <option value="c">(c) Najviša dopuštena razina vanjske buke</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="res-label">Traženi R'w [dB]</label>
-                            <input type="number" id="req-rw" value="52" oninput="calculateAll()">
+
+                        <!-- Results Section -->
+                        <div class="results-panel">
+                            <div class="card">
+                                <h2>📊 Rezultati Proračuna</h2>
+
+                                <div class="res-card">
+                                    <div>
+                                        <div class="res-label">Ukupna masa</div>
+                                        <div class="res-value" id="val-total-mass">0 kg/m²</div>
+                                    </div>
+                                </div>
+
+                                <div class="res-card">
+                                    <div>
+                                        <div class="res-label">Projektirani R'w (Zračna)</div>
+                                        <div class="res-value" id="val-rw">0 dB</div>
+                                    </div>
+                                    <div id="status-rw" class="status-badge status-fail">NE PROLAZI</div>
+                                </div>
+
+                                <div class="res-card" id="impact-card" style="display: none;">
+                                    <div>
+                                        <div class="res-label">Udarna buka L'nw</div>
+                                        <div class="res-value" id="val-lnw">0 dB</div>
+                                    </div>
+                                    <div id="status-lnw" class="status-badge status-fail">NE PROLAZI</div>
+                                </div>
+
+                                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem;">
+                                    * Zahtjev za zidove: R'w ≥ 52 dB. <br>
+                                    * Zahtjev za podove: L'nw ≤ 55 dB.
+                                </p>
+
+                                <div style="margin-top: 1.5rem;">
+                                    <label class="res-label">Email za kopiju izračuna</label>
+                                    <input type="email" id="user-email" placeholder="vas-email@domena.com"
+                                        style="margin-bottom: 0.5rem;">
+                                </div>
+
+                                <div class="floating-btn-group"
+                                    style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <button class="btn btn-primary" onclick="syncToDrive()">☁️ Spremi i Pošalji</button>
+                                    <button class="btn btn-primary"
+                                        style="background-color: var(--success); color: white;"
+                                        onclick="downloadExcelReport()">📊 Preuzmi Excel Iskaznicu</button>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                                        <button class="btn btn-outline" onclick="downloadJSON()">💾 Preuzmi
+                                            JSON</button>
+                                        <button class="btn btn-outline" onclick="triggerUploadJSON()">📂 Učitaj
+                                            JSON</button>
+                                    </div>
+                                </div>
+                                <input type="file" id="json-upload-input" accept=".json" style="display: none;"
+                                    onchange="uploadJSON(event)">
+                            </div>
                         </div>
-                        <div>
-                            <label class="res-label">Dopušteni L'nw [dB]</label>
-                            <input type="number" id="req-lnw" value="55" oninput="calculateAll()">
-                        </div>
-                <div class="card" style="margin-top: 1.5rem; border: 1px dashed var(--border-color); background: rgba(0,0,0,0.02);">
-                    <h3 style="font-size: 1rem; margin-bottom: 1rem;">📑 Podaci za Iskaznicu (Prilog E)</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <label class="res-label" style="font-weight: bold;">1. Investitor</label>
-                            <input type="text" id="prj-investitor" placeholder="Ime/Naziv investitora">
-                        </div>
-                        <div>
-                            <label class="res-label" style="font-weight: bold;">2. Oznaka projekta</label>
-                            <input type="text" id="prj-oznaka" placeholder="Npr. 123/2026">
-                        </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <label class="res-label" style="font-weight: bold;">3a. Naziv zgrade</label>
-                            <input type="text" id="prj-naziv" placeholder="Npr. Stambena zgrada A">
-                        </div>
-                        <div>
-                            <label class="res-label" style="font-weight: bold;">3b. Vrsta zgrade</label>
-                            <input type="text" id="prj-vrsta" placeholder="Npr. Višestambena">
-                        </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <label class="res-label" style="font-weight: bold;">3c. Namjena zgrade</label>
-                            <input type="text" id="prj-namjena" placeholder="Npr. Stanovanje">
-                        </div>
-                        <div>
-                            <label class="res-label" style="font-weight: bold;">3d. Lokacija (Adresa/k.č.)</label>
-                            <input type="text" id="prj-lokacija" placeholder="Npr. Ilica 1, Zagreb">
-                        </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <label class="res-label" style="font-weight: bold;">Mjesto i Datum</label>
-                            <input type="text" id="prj-datum" placeholder="Npr. Zagreb, ožujak 2026.">
-                        </div>
-                        <div>
-                            <label class="res-label" style="font-weight: bold;">4. Temelj proračuna</label>
-                            <select id="prj-temelj">
-                                <option value="a">(a) Rezultati mjerenja inicijalne buke</option>
-                                <option value="b" selected>(b) Projektantska proračunska procjena</option>
-                                <option value="c">(c) Najviša dopuštena razina vanjske buke</option>
-                            </select>
-                        </div>
-                    </div>
+                    </div> <!-- End Main Grid -->
                 </div>
             </div>
+        </div> <!-- End Tab Akustika -->
 
-            <!-- Results Section -->
-            <div class="results-panel">
+        <!-- TAB: TROŠKOVNIK -->
+        <div id="tab-troskovnik" class="tab-content">
+            <div class="main-grid">
                 <div class="card">
-                    <h2>📊 Rezultati Proračuna</h2>
-                    
-                    <div class="res-card">
-                        <div>
-                            <div class="res-label">Ukupna masa</div>
-                            <div class="res-value" id="val-total-mass">0 kg/m²</div>
+                    <h2>🏗️ Geometrija Elemenata (Beton/Oplata)</h2>
+                    <table id="troskovnik-table">
+                        <thead>
+                            <tr>
+                                <th>Pozicija</th>
+                                <th>L (m)</th>
+                                <th>H (m)</th>
+                                <th>d (cm)</th>
+                                <th>Otvor (%)</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="troskovnik-body">
+                            <!-- JS Dynamic rows -->
+                        </tbody>
+                    </table>
+                    <button class="btn btn-outline" onclick="addElement()">+ Dodaj Element</button>
+
+                    <div id="openings-editor" class="card" style="margin-top: 2rem; display: none;">
+                        <h3>🔲 Otvori za: <span id="current-element-name">-</span></h3>
+                        <table id="openings-table">
+                            <thead>
+                                <tr>
+                                    <th>Naziv</th>
+                                    <th>Š (m)</th>
+                                    <th>V (m)</th>
+                                    <th>Kol.</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="openings-body"></tbody>
+                        </table>
+                        <button class="btn btn-outline" onclick="addOpening()">+ Dodaj Otvor</button>
+                    </div>
+                </div>
+
+                <div class="results-panel">
+                    <div class="card">
+                        <h2>📊 Rezultati Troškovnika</h2>
+                        <div class="res-card">
+                            <div>
+                                <div class="res-label">Ukupno Oplata</div>
+                                <div class="res-value" id="val-total-oplata">0 m²</div>
+                            </div>
+                        </div>
+                        <div class="res-card">
+                            <div>
+                                <div class="res-label">Ukupno Beton</div>
+                                <div class="res-value" id="val-total-beton">0 m³</div>
+                            </div>
+                        </div>
+                        <div class="res-card">
+                            <div>
+                                <div class="res-label">Ukupno Armatura</div>
+                                <div class="res-value" id="val-total-armatura">0 kg</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem;">
+                            <button class="btn btn-primary" onclick="syncTroskovnik()">☁️ Spremi Troškovnik</button>
                         </div>
                     </div>
-
-                    <div class="res-card">
-                        <div>
-                            <div class="res-label">Projektirani R'w (Zračna)</div>
-                            <div class="res-value" id="val-rw">0 dB</div>
-                        </div>
-                        <div id="status-rw" class="status-badge status-fail">NE PROLAZI</div>
-                    </div>
-
-                    <div class="res-card" id="impact-card" style="display: none;">
-                        <div>
-                            <div class="res-label">Udarna buka L'nw</div>
-                            <div class="res-value" id="val-lnw">0 dB</div>
-                        </div>
-                        <div id="status-lnw" class="status-badge status-fail">NE PROLAZI</div>
-                    </div>
-
-                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem;">
-                        * Zahtjev za zidove: R'w ≥ 52 dB. <br>
-                        * Zahtjev za podove: L'nw ≤ 55 dB.
-                    </p>
-
-                    <div style="margin-top: 1.5rem;">
-                        <label class="res-label">Email za kopiju izračuna</label>
-                        <input type="email" id="user-email" placeholder="vas-email@domena.com" style="margin-bottom: 0.5rem;">
-                    </div>
-
-                    <div class="floating-btn-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <button class="btn btn-primary" onclick="syncToDrive()">☁️ Spremi i Pošalji</button>
-                        <button class="btn btn-primary" style="background-color: var(--success); color: white;" onclick="downloadExcelReport()">📊 Preuzmi Excel Iskaznicu</button>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                            <button class="btn btn-outline" onclick="downloadJSON()">💾 Preuzmi JSON</button>
-                            <button class="btn btn-outline" onclick="triggerUploadJSON()">📂 Učitaj JSON</button>
-                        </div>
-                    </div>
-                    <input type="file" id="json-upload-input" accept=".json" style="display: none;" onchange="uploadJSON(event)">
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- TAB: SETTINGS -->
+        <div id="tab-settings" class="tab-content">
+            <div class="card" style="max-width: 500px; margin: 0 auto;">
+                <h2>⚙️ Postavke Izračuna</h2>
+                <div style="margin-bottom: 1.5rem;">
+                    <label class="res-label">Norma Armature (kg/m³)</label>
+                    <input type="number" id="setting-armatura" value="90" onchange="saveSettings()">
+                    <p style="font-size: 0.8rem; color: var(--text-secondary);">Prosječna količina armature po kubiku
+                        betona.</p>
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label class="res-label">Prag odbitka oplate (m²)</label>
+                    <input type="number" id="setting-oplata-limit" value="3.0" step="0.5" onchange="saveSettings()">
+                    <p style="font-size: 0.8rem; color: var(--text-secondary);">Otvori manji od ovog praga se ne
+                        oduzimaju od površine oplate.</p>
+                </div>
+                <button class="btn btn-outline" onclick="resetSettings()">Vrati na zadano</button>
+            </div>
+        </div>
+    </div> <!-- End Container -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registriran!', reg))
+                    .catch(err => console.log('Greška pri registraciji SW:', err));
+            });
+        }
+    </script>
 </body>
+
 </html>

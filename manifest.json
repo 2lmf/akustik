@@ -1,0 +1,17 @@
+{
+  "name": "Arch-Toolkit",
+  "short_name": "ArchTool",
+  "description": "Alat za arhitekte: Iskaznice akustike i građevinski troškovnici.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "assets/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

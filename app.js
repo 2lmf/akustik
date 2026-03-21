@@ -30,9 +30,73 @@ let layers = [
     { materialName: 'Cementni estrih', thickness: 6 }
 ];
 
+// --- GLOBALNE POSTAVKE I PODACI ---
+let currentTab = 'akustika';
+let settings = {
+    armaturaRatio: 90, // kg/m3
+    oplataLimit: 3.0    // m2
+};
+
+const DESCRIPTIONS_DB = [
+    { title: 'Betonski zid C25/30', text: 'Dobava, doprema i ugradnja betona C25/30 u vertikalnu oplatu zida. U stavku uključeno vibriranje i njegovanje betona. Izračun po m3.' },
+    { title: 'Oplata zida', text: 'Izrada, montaža i demontaža dvostrane glatke oplate zidova visine do 4m. U cijenu uključeno podupiranje i premazivanje oplatnim uljem. Izračun po m2.' },
+    { title: 'Armatura B500B', text: 'Dobava, sječenje, savijanje i postavljanje armature B500B prema planovima armature. Izračun po kg.' }
+];
+
+let troskovnikElements = [
+    { id: 1, name: 'Zid Z1', l: 10, h: 2.8, d: 20, description: DESCRIPTIONS_DB[0].text, openings: [] }
+];
+
+let currentElementId = null;
+
+// --- INICIJALIZACIJA ---
 function init() {
+    loadSettings();
     renderLayers();
+    renderTroskovnik();
     calculateAll();
+}
+
+function switchTab(tabId) {
+    currentTab = tabId;
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+    document.getElementById(`tab-${tabId}`).classList.add('active');
+    document.querySelector(`.tab-btn[onclick*="${tabId}"]`).classList.add('active');
+
+    // Update subtitle
+    const subtitles = {
+        akustika: 'Iskaznica Akustičkih Svojstava (NN 71/2025)',
+        troskovnik: 'Građevinski Troškovnik (Beton / Oplata)',
+        settings: 'Postavke sustava i izračuna'
+    };
+    document.getElementById('app-subtitle').innerText = subtitles[tabId];
+}
+
+function loadSettings() {
+    const saved = localStorage.getItem('arch_toolkit_settings');
+    if (saved) {
+        settings = JSON.parse(saved);
+        document.getElementById('setting-armatura').value = settings.armaturaRatio;
+        document.getElementById('setting-oplata-limit').value = settings.oplataLimit;
+    }
+}
+
+function saveSettings() {
+    settings.armaturaRatio = parseFloat(document.getElementById('setting-armatura').value) || 90;
+    settings.oplataLimit = parseFloat(document.getElementById('setting-oplata-limit').value) || 3;
+    localStorage.setItem('arch_toolkit_settings', JSON.stringify(settings));
+    calculateTroskovnik();
+}
+
+function resetSettings() {
+    if (confirm("Vratiti postavke na zadane vrijednosti?")) {
+        settings = { armaturaRatio: 90, oplataLimit: 3.0 };
+        document.getElementById('setting-armatura').value = 90;
+        document.getElementById('setting-oplata-limit').value = 3.0;
+        saveSettings();
+    }
 }
 
 function applyPreset() {
@@ -47,10 +111,10 @@ function applyPreset() {
 function renderLayers() {
     const tbody = document.getElementById('layers-body');
     tbody.innerHTML = '';
-    
+
     layers.forEach((layer, index) => {
         const tr = document.createElement('tr');
-        
+
         const mat = findMaterial(layer.materialName);
         const mass = (mat.rho * layer.thickness / 100).toFixed(1);
 
@@ -114,10 +178,10 @@ function calculateAll() {
         const mat = findMaterial(layer.materialName);
         const mass = (mat.rho * layer.thickness / 100);
         totalMass += mass;
-        
+
         if (mat.cat === 'masivni') {
             baseMass = Math.max(baseMass, mass);
-            
+
             // Lab Rw calculation
             let rw = 0;
             if (mat.rw_lab > 0) {
@@ -138,7 +202,7 @@ function calculateAll() {
     const rwInsitu = Math.round(maxRwLab - 3); // -3dB rule for flanking
     document.getElementById('val-total-mass').innerText = `${Math.round(totalMass)} kg/m²`;
     document.getElementById('val-rw').innerText = `${rwInsitu} dB`;
-    
+
     const statusRw = document.getElementById('status-rw');
     if (rwInsitu >= reqRw) {
         statusRw.innerText = 'PROLAZI';
@@ -151,7 +215,7 @@ function calculateAll() {
     // IMPACT NOISE
     const type = document.getElementById('const-type').value;
     const impactCard = document.getElementById('impact-card');
-    
+
     if (type === 'floor') {
         impactCard.style.display = 'flex';
         // Simplified ISO 12354-2: Lnw = Ln,eq,0,w - dLw + K
@@ -176,7 +240,7 @@ function calculateAll() {
 async function syncToDrive() {
     const email = document.getElementById('user-email').value;
     const buildingName = document.querySelector('input[placeholder="Npr. Stambena zgrada A"]').value;
-    
+
     if (!email) {
         alert("Molimo unesite email adresu kako biste dobili kopiju izračuna.");
         return;
@@ -194,7 +258,7 @@ async function syncToDrive() {
     };
 
     console.log("Sending data to Cloud...", payload);
-    
+
     // URL koji si mi poslao
     const GAS_URL = "https://script.google.com/macros/s/AKfycbz9pogDtFfoa3riTtnEk6Be5cx3Xt7_y1iZ55mxpaAHmKMgJ9SiDf8K-4jvzq_zh506TQ/exec";
 
@@ -218,7 +282,7 @@ async function syncToDrive() {
 
 async function downloadExcelReport() {
     const buildingName = document.querySelector('input[placeholder="Npr. Stambena zgrada A"]').value || "Novi Projekt";
-    
+
     // Provjera da li je knjižnica učitana iz index.html
     if (typeof ExcelJS === 'undefined') {
         alert("Sustav za generiranje Excela (ExcelJS) se nije ispravno učitao. Provjerite internet vezu.");
@@ -255,7 +319,7 @@ async function downloadExcelReport() {
 
         // 2. PRORACUN SHEET
         const calcSheet = workbook.addWorksheet('PRORACUN');
-        
+
         calcSheet.mergeCells('A1:G1');
         const titleCell = calcSheet.getCell('A1');
         titleCell.value = 'UNIVERZALNI AKUSTIČKI KALKULATOR (NN 71/2025)';
@@ -285,14 +349,14 @@ async function downloadExcelReport() {
             if (inputLayer) {
                 valCell.value = inputLayer.materialName;
                 row.getCell(3).value = inputLayer.thickness;
-                
+
                 // Ručni proračun prema ISO 12354 (isto kao u aplikaciji)
                 const mat = MATERIALS_DB.find(m => m.name === inputLayer.materialName);
                 if (mat) {
                     const mass = mat.rho * (inputLayer.thickness / 100);
                     totalMasaCalc += mass;
                     if (mat.dlw > 0) dLwSum += mat.dlw;
-                    
+
                     if (mat.cat === 'masivni') {
                         baseMassExcel = Math.max(baseMassExcel, mass);
                         let rw = mat.rw_lab > 0 ? mat.rw_lab : (33.5 * Math.log10(mass) - 2);
@@ -308,14 +372,14 @@ async function downloadExcelReport() {
             };
 
             // Formule i vrijednosti (kombinirano)
-            row.getCell(4).value = { 
+            row.getCell(4).value = {
                 formula: `IF(B${rowNum}="",0,VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$D$${MATERIALS_DB.length + 1},2,FALSE)*(C${rowNum}/100))`,
                 result: inputLayer ? (MATERIALS_DB.find(m => m.name === inputLayer.materialName)?.rho * (inputLayer.thickness / 100)) : 0
             };
-            row.getCell(5).value = { 
+            row.getCell(5).value = {
                 formula: `IF(B${rowNum}="",0,IF(VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$E$${MATERIALS_DB.length + 1},3,FALSE)>0,VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$E$${MATERIALS_DB.length + 1},3,FALSE),33.5*LOG10(MAX(1,D${rowNum}))-2))`
             };
-            row.getCell(6).value = { 
+            row.getCell(6).value = {
                 formula: `IF(B${rowNum}="",0,VLOOKUP(B${rowNum},BAZA_MATERIJALA!$B$2:$E$${MATERIALS_DB.length + 1},4,FALSE))`,
                 result: inputLayer ? (MATERIALS_DB.find(m => m.name === inputLayer.materialName)?.dlw) : 0
             };
@@ -341,10 +405,10 @@ async function downloadExcelReport() {
         // U Excelu je teže automatski naći m_base iz liste, pa koristimo sumu dLw i aproksimaciju mase ako nemamo baseMassExcel
         const lnZeroExcel = 164 - 35 * Math.log10(baseMassExcel || 1);
         const finalLnw = Math.round(lnZeroExcel - dLwSum + 2);
-        
-        calcSheet.getCell(`D${lprimeRow}`).value = { 
-            formula: `IF(D${resRow}<50,"N/A",ROUND(164-35*LOG10(MAX(1,D${resRow}))-SUM(F4:F11)+2,0))`, 
-            result: finalLnw 
+
+        calcSheet.getCell(`D${lprimeRow}`).value = {
+            formula: `IF(D${resRow}<50,"N/A",ROUND(164-35*LOG10(MAX(1,D${resRow}))-SUM(F4:F11)+2,0))`,
+            result: finalLnw
         };
 
         // 3. ISKAZNICA SHEET (PRILOG E)
@@ -360,7 +424,7 @@ async function downloadExcelReport() {
         iskaznica.mergeCells('A1:F1');
         iskaznica.getCell('A1').value = 'PRILOG E';
         iskaznica.getCell('A1').alignment = { horizontal: 'center' };
-        
+
         iskaznica.mergeCells('A2:F2');
         const mainTitle = iskaznica.getCell('A2');
         mainTitle.value = 'ISKAZNICA O AKUSTIČKIM SVOJSTVIMA ZGRADE';
@@ -407,11 +471,10 @@ async function downloadExcelReport() {
         currRow++;
         const temelj = document.getElementById('prj-temelj').value;
         iskaznica.mergeCells(`A${currRow}:F${currRow}`);
-        iskaznica.getCell(`A${currRow}`).value = `Proračun se temelji na: ${
-            temelj === 'a' ? '(a) mjerenju inicijalne buke' : 
-            temelj === 'b' ? '(b) proračunskoj procjeni stvarnog opterećenja' : 
-            '(c) najvišoj dopuštenoj razini vanjske buke'
-        }`;
+        iskaznica.getCell(`A${currRow}`).value = `Proračun se temelji na: ${temelj === 'a' ? '(a) mjerenju inicijalne buke' :
+            temelj === 'b' ? '(b) proračunskoj procjeni stvarnog opterećenja' :
+                '(c) najvišoj dopuštenoj razini vanjske buke'
+            }`;
         currRow += 2;
 
         // Section 5 & 6 (Dynamic Tables)
@@ -420,22 +483,22 @@ async function downloadExcelReport() {
             iskaznica.getCell(`A${currRow}`).value = title;
             iskaznica.getCell(`A${currRow}`).font = { bold: true };
             currRow++;
-            
+
             const headRow = iskaznica.getRow(currRow);
             headRow.values = ['', 'Građevni dio ili pregrada', 'Oznaka vel.', 'Traženo', 'Projektirano', 'Izmjereno'];
             headRow.font = { bold: true };
-            headRow.eachCell(c => c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} });
+            headRow.eachCell(c => c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } });
             currRow++;
         };
 
         const isWall = document.getElementById('const-type').value === 'wall';
-        
+
         // Table 5 (External)
         addTableHeaders('5. ZVUČNA IZOLACIJA VANJSKIH GRAĐEVNIH DIJELOVA');
         if (isWall) {
             const r = iskaznica.getRow(currRow);
             r.values = ['1', document.getElementById('prj-naziv').value || 'Vanjski zid', "R'w [dB]", document.getElementById('req-rw').value, { formula: 'PRORACUN!D15', result: maxRwLabVal - 3 }, ''];
-            r.eachCell(c => c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} });
+            r.eachCell(c => c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } });
             currRow++;
         }
         currRow += 2;
@@ -446,14 +509,14 @@ async function downloadExcelReport() {
             // First row for Rw
             let r1 = iskaznica.getRow(currRow);
             r1.values = ['1', document.getElementById('prj-naziv').value || 'Međukatna konstrukcija', "R'w [dB]", document.getElementById('req-rw').value, { formula: 'PRORACUN!D15', result: maxRwLabVal - 3 }, ''];
-            r1.eachCell(c => c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} });
+            r1.eachCell(c => c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } });
             currRow++;
             // Second row for Lnw
             let r2 = iskaznica.getRow(currRow);
             const lnZeroExcel = 164 - 35 * Math.log10(baseMassExcel || 1);
             const finalLnw = Math.round(lnZeroExcel - dLwSum + 2);
             r2.values = ['2', document.getElementById('prj-naziv').value || 'Međukatna konstrukcija', "L'nw [dB]", document.getElementById('req-lnw').value, { formula: 'PRORACUN!D16', result: finalLnw }, ''];
-            r2.eachCell(c => c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} });
+            r2.eachCell(c => c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } });
             currRow++;
         }
         currRow += 2;
@@ -485,17 +548,17 @@ async function downloadExcelReport() {
         // GENERIRANJE DATOTEKE (U MEMORIJI PREGLEDNIKA)
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        
+
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;
         a.download = `Akustika_Iskaznica_${buildingName.replace(/\s+/g, '_')}.xlsx`;
         document.body.appendChild(a);
         a.click();
-        
+
         window.URL.revokeObjectURL(downloadUrl);
         a.remove();
-        
+
     } catch (err) {
         alert("Greška pri kreiranju Excel datoteke u pregledniku: " + err.message);
     }
@@ -522,7 +585,7 @@ function downloadJSON() {
         temelj: document.getElementById('prj-temelj').value,
         layers: layers
     };
-    
+
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -543,7 +606,7 @@ function uploadJSON(event) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         try {
             const data = JSON.parse(e.target.result);
             if (data.layers) layers = data.layers;
@@ -553,7 +616,7 @@ function uploadJSON(event) {
             if (data.reqRw) document.getElementById('req-rw').value = data.reqRw;
             if (data.reqLnw) document.getElementById('req-lnw').value = data.reqLnw;
             if (data.email) document.getElementById('user-email').value = data.email;
-            
+
             // Prilog E metadata
             if (data.investitor) document.getElementById('prj-investitor').value = data.investitor;
             if (data.oznaka) document.getElementById('prj-oznaka').value = data.oznaka;
@@ -563,7 +626,7 @@ function uploadJSON(event) {
             if (data.lokacija) document.getElementById('prj-lokacija').value = data.lokacija;
             if (data.datum) document.getElementById('prj-datum').value = data.datum;
             if (data.temelj) document.getElementById('prj-temelj').value = data.temelj;
-            
+
             renderLayers();
             calculateAll();
             alert("Projekt uspješno učitan!");
@@ -574,4 +637,203 @@ function uploadJSON(event) {
     reader.readAsText(file);
 }
 
+// --- TROŠKOVNIK LOGIKA ---
+
+function renderTroskovnik() {
+    const tbody = document.getElementById('troskovnik-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    troskovnikElements.forEach((el, index) => {
+        const totalOpeningArea = el.openings.reduce((sum, op) => sum + (op.w * op.h * op.count), 0);
+        const openingPercent = el.l * el.h > 0 ? ((totalOpeningArea / (el.l * el.h)) * 100).toFixed(1) : 0;
+
+        const tr = document.createElement('tr');
+        tr.className = 'troskovnik-row';
+        tr.innerHTML = `
+            <td colspan="6">
+                <div class="element-header">
+                    <input type="text" class="input-name" value="${el.name}" oninput="updateElementName(${index}, this.value)">
+                    <div class="element-dims">
+                        L: <input type="number" value="${el.l}" step="0.1" oninput="updateElementDim(${index}, 'l', this.value)"> m | 
+                        H: <input type="number" value="${el.h}" step="0.1" oninput="updateElementDim(${index}, 'h', this.value)"> m | 
+                        d: <input type="number" value="${el.d}" oninput="updateElementDim(${index}, 'd', this.value)"> cm
+                    </div>
+                    <div class="element-actions">
+                        <button class="btn btn-outline small" onclick="editOpenings(${el.id})">🔲 Otvori (${el.openings.length})</button>
+                        <button class="btn btn-outline small danger" onclick="removeElement(${index})">×</button>
+                    </div>
+                </div>
+                <div class="element-description">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-secondary);">Opis stavke:</span>
+                        <select class="preset-select" onchange="applyDescriptionPreset(${index}, this.value)">
+                            <option value="">-- Odaberi predložak --</option>
+                            ${DESCRIPTIONS_DB.map(d => `<option value="${d.text}">${d.title}</option>`).join('')}
+                        </select>
+                    </div>
+                    <textarea oninput="updateElementDescription(${index}, this.value)">${el.description || ''}</textarea>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+    calculateTroskovnik();
+}
+
+function updateElementDescription(index, val) {
+    troskovnikElements[index].description = val;
+}
+
+function applyDescriptionPreset(index, val) {
+    if (!val) return;
+    troskovnikElements[index].description = val;
+    renderTroskovnik();
+}
+
+function addElement() {
+    const newId = troskovnikElements.length > 0 ? Math.max(...troskovnikElements.map(e => e.id)) + 1 : 1;
+    troskovnikElements.push({
+        id: newId,
+        name: `Element ${newId}`,
+        l: 5,
+        h: 2.8,
+        d: 20,
+        description: DESCRIPTIONS_DB[0].text,
+        openings: []
+    });
+    renderTroskovnik();
+}
+
+function removeElement(index) {
+    if (troskovnikElements[index].id === currentElementId) {
+        document.getElementById('openings-editor').style.display = 'none';
+        currentElementId = null;
+    }
+    troskovnikElements.splice(index, 1);
+    renderTroskovnik();
+}
+
+function updateElementName(index, val) {
+    troskovnikElements[index].name = val;
+}
+
+function updateElementDim(index, field, val) {
+    troskovnikElements[index][field] = parseFloat(val) || 0;
+    renderTroskovnik();
+}
+
+function editOpenings(id) {
+    currentElementId = id;
+    const el = troskovnikElements.find(e => e.id === id);
+    document.getElementById('current-element-name').innerText = el.name;
+    document.getElementById('openings-editor').style.display = 'block';
+    renderOpenings();
+}
+
+function renderOpenings() {
+    const el = troskovnikElements.find(e => e.id === currentElementId);
+    const tbody = document.getElementById('openings-body');
+    tbody.innerHTML = '';
+
+    el.openings.forEach((op, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" value="${op.name}" oninput="updateOpening(${index}, 'name', this.value)"></td>
+            <td><input type="number" value="${op.w}" step="0.1" oninput="updateOpening(${index}, 'w', this.value)"></td>
+            <td><input type="number" value="${op.h}" step="0.1" oninput="updateOpening(${index}, 'h', this.value)"></td>
+            <td><input type="number" value="${op.count}" oninput="updateOpening(${index}, 'count', this.value)"></td>
+            <td>
+                <button class="btn btn-outline" style="padding: 0.25rem 0.5rem" onclick="removeOpening(${index})">×</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function addOpening() {
+    const el = troskovnikElements.find(e => e.id === currentElementId);
+    el.openings.push({ name: 'Prozor', w: 1.2, h: 1.4, count: 1 });
+    renderOpenings();
+    renderTroskovnik();
+}
+
+function removeOpening(index) {
+    const el = troskovnikElements.find(e => e.id === currentElementId);
+    el.openings.splice(index, 1);
+    renderOpenings();
+    renderTroskovnik();
+}
+
+function updateOpening(index, field, val) {
+    const el = troskovnikElements.find(e => e.id === currentElementId);
+    el.openings[index][field] = field === 'name' ? val : (parseFloat(val) || 0);
+    renderTroskovnik();
+}
+
+function calculateTroskovnik() {
+    let totalBeton = 0;
+    let totalOplata = 0;
+
+    troskovnikElements.forEach(el => {
+        const grossArea = el.l * el.h;
+        const grossVolume = grossArea * (el.d / 100);
+
+        let netVolume = grossVolume;
+        let netOplataArea = grossArea * 2; // Obostrano
+
+        el.openings.forEach(op => {
+            const opArea = op.w * op.h * op.count;
+            const opVolume = opArea * (el.d / 100);
+
+            // Kod betona se ODUZIMA UVJEK
+            netVolume -= opVolume;
+
+            // Kod oplate samo ako je POJEDINAČNI otvor > praga
+            if ((op.w * op.h) > settings.oplataLimit) {
+                netOplataArea -= (opArea * 2);
+            }
+        });
+
+        totalBeton += netVolume;
+        totalOplata += netOplataArea;
+    });
+
+    document.getElementById('val-total-beton').innerText = `${totalBeton.toFixed(2)} m³`;
+    document.getElementById('val-total-oplata').innerText = `${totalOplata.toFixed(2)} m²`;
+    document.getElementById('val-total-armatura').innerText = `${Math.round(totalBeton * settings.armaturaRatio)} kg`;
+}
+
+async function syncTroskovnik() {
+    const email = document.getElementById('user-email').value;
+    if (!email) {
+        alert("Unesite email u tabu Akustika za sinkronizaciju.");
+        switchTab('akustika');
+        document.getElementById('user-email').focus();
+        return;
+    }
+
+    const payload = {
+        type: 'troskovnik',
+        email: email,
+        project: document.getElementById('project-name').value || "Novi Projekt",
+        data: troskovnikElements,
+        summary: {
+            beton: document.getElementById('val-total-beton').innerText,
+            oplata: document.getElementById('val-total-oplata').innerText,
+            armatura: document.getElementById('val-total-armatura').innerText
+        }
+    };
+
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbz9pogDtFfoa3riTtnEk6Be5cx3Xt7_y1iZ55mxpaAHmKMgJ9SiDf8K-4jvzq_zh506TQ/exec";
+
+    try {
+        await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        alert("Troškovnik sinkroniziran s Google Sheets!");
+    } catch (e) {
+        alert("Greška pri sinkronizaciji: " + e.message);
+    }
+}
+
 window.onload = init;
+
