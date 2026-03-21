@@ -50,6 +50,80 @@ let troskovnikElements = [
 let currentElementId = null;
 
 // --- INICIJALIZACIJA ---
+async function downloadTroskovnikExcel() {
+    const projectName = document.getElementById('project-name').value || "Troškovnik";
+    if (typeof ExcelJS === 'undefined') {
+        alert("ExcelJS nije učitan.");
+        return;
+    }
+
+    try {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Troškovnik');
+
+        // Header Style
+        sheet.mergeCells('A1:G1');
+        const title = sheet.getCell('A1');
+        title.value = 'GRAĐEVINSKI TROŠKOVNIK - BETONSKI RADOVI';
+        title.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+        title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
+        title.alignment = { horizontal: 'center' };
+
+        sheet.getRow(3).values = ['Pozicija', 'Dužina (m)', 'Visina (m)', 'Debljina (cm)', 'Beton (m3)', 'Oplata (m2)', 'Armatura (kg)'];
+        sheet.getRow(3).font = { bold: true };
+        sheet.columns = [{ width: 25 }, { width: 12 }, { width: 12 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
+
+        let rowIdx = 4;
+        let totalBeton = 0;
+        let totalOplata = 0;
+        let totalArmatura = 0;
+
+        troskovnikElements.forEach(el => {
+            const grossArea = el.l * el.h;
+            const grossVol = grossArea * (el.d / 100);
+            let netVol = grossVol;
+            let netOplata = grossArea * 2;
+            let spalete = 0;
+
+            el.openings.forEach(op => {
+                const opArea = op.w * op.h * op.count;
+                netVol -= (opArea * (el.d / 100));
+                if ((op.w * op.h) > settings.oplataLimit) netOplata -= (opArea * 2);
+                const perimeter = (op.type === 'vrata') ? (op.w + 2 * op.h) : (2 * op.w + 2 * op.h);
+                spalete += (perimeter * (el.d / 100)) * op.count;
+            });
+
+            const finalOplata = netOplata + spalete;
+            const armatura = netVol * settings.armaturaRatio;
+
+            sheet.getRow(rowIdx).values = [el.name, el.l, el.h, el.d, netVol.toFixed(2), finalOplata.toFixed(2), Math.round(armatura)];
+            rowIdx++;
+
+            totalBeton += netVol;
+            totalOplata += finalOplata;
+            totalArmatura += armatura;
+        });
+
+        const sumRow = rowIdx + 1;
+        sheet.getCell(`D${sumRow}`).value = 'UKUPNO:';
+        sheet.getCell(`D${sumRow}`).font = { bold: true };
+        sheet.getCell(`E${sumRow}`).value = totalBeton.toFixed(2);
+        sheet.getCell(`F${sumRow}`).value = totalOplata.toFixed(2);
+        sheet.getCell(`G${sumRow}`).value = Math.round(totalArmatura);
+        sheet.getRow(sumRow).font = { bold: true };
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/octet-stream' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Troskovnik_${projectName.replace(/\s+/g, '_')}.xlsx`;
+        a.click();
+    } catch (e) {
+        alert("Greška kod Excela: " + e.message);
+    }
+}
+
 function init() {
     loadSettings();
     renderLayers();

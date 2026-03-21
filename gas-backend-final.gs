@@ -1,6 +1,7 @@
-// --- GOOGLE APPS SCRIPT FOR ARCH-TOOLKIT ---
-// Zamijenite sav vaš postojeći kod u Script Editoru ovim kodom.
-// Spreadsheet ID: 1EG_0RzwE7UsrFqJJu4Mwwr0WCtSpcNsXIv6j0uT3a1k
+/**
+ * ARCH-TOOLKIT | GOOGLE APPS SCRIPT BACKEND (v3.1)
+ * Automatsko razvrstavanje: AKUSTIKA i TROŠKOVNIK u zasebne tabove.
+ */
 
 function doGet(e) {
   return HtmlService.createTemplateFromFile('index')
@@ -10,46 +11,51 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/**
- * Glavna funkcija za obranu POST zahtjeva iz PWA aplikacije (GitHub)
- */
 function doPost(e) {
   try {
     var ssId = "1EG_0RzwE7UsrFqJJu4Mwwr0WCtSpcNsXIv6j0uT3a1k";
     var data = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.openById(ssId);
-    var sheet = ss.getSheets()[0];
-    
-    // Inicijalizacija zaglavlja ako je tablica prazna
-    if (sheet.getLastRow() == 0) {
-      sheet.appendRow(["Datum", "Tip", "Projekt/Građevina", "Podaci (JSON)", "Rezultat 1", "Rezultat 2", "Email"]);
-    }
     
     if (data.type === 'troskovnik') {
-      // SPREMANJE TROŠKOVNIKA
+      // --- SPREMANJE U TAB "Troškovnik" ---
+      var sheet = ss.getSheetByName("Troškovnik") || ss.insertSheet("Troškovnik");
+      if (sheet.getLastRow() == 0) {
+        sheet.appendRow(["Datum", "Projekt/Pozicija", "Svi Podaci (JSON)", "Beton (m3)", "Oplata (m2)", "Špalete (m2)", "Armatura (kg)", "Email"]);
+        sheet.getRange(1, 1, 1, 8).setFontWeight("bold").setBackground("#f1f5f9");
+      }
+      
       sheet.appendRow([
         new Date(),
-        "TROŠKOVNIK",
-        data.project || "Bez naziva",
+        data.project || "Novi projekt",
         JSON.stringify(data.data),
         data.summary.beton,
-        data.summary.oplata + " | " + data.summary.spalete + " | " + data.summary.armatura,
+        data.summary.oplata,
+        data.summary.spalete,
+        data.summary.armatura,
         data.email
       ]);
+      
     } else {
-      // SPREMANJE AKUSTIKE
+      // --- SPREMANJE U TAB "Akustika" ---
+      var sheet = ss.getSheetByName("Akustika") || ss.insertSheet("Akustika");
+      if (sheet.getLastRow() == 0) {
+        sheet.appendRow(["Datum", "Građevina", "Slojevi (JSON)", "Rezultat Rw", "Rezultat Lnw", "Cilj Rw", "Cilj Lnw", "Email"]);
+        sheet.getRange(1, 1, 1, 8).setFontWeight("bold").setBackground("#e0f2fe");
+      }
+      
       var buildingName = data.buildingName || data.project || "Novi projekt";
       sheet.appendRow([
         new Date(),
-        "AKUSTIKA",
         buildingName,
         JSON.stringify(data.layers),
         data.resultRw + " dB",
         (data.resultLnw || "N/A") + " dB",
+        (data.reqRw || "52") + " dB",
+        (data.reqLnw || "55") + " dB",
         data.email
       ]);
       
-      // Slanje maila (vaša postojeća funkcija)
       if (data.email && data.email.includes("@")) {
         sendAcousticEmail(data);
       }
@@ -66,10 +72,8 @@ function doPost(e) {
 
 function sendAcousticEmail(data) {
   var subject = "Izvještaj: Iskaznica Akustike - " + (data.buildingName || "Projekt");
-  
   var htmlTable = "<table border='1' style='border-collapse: collapse; width: 100%; font-family: sans-serif;'>" +
                   "<tr style='background-color: #f2f2f2;'><th>#</th><th>Materijal</th><th>Debljina (cm)</th><th>Masa (kg/m²)</th></tr>";
-  
   if (data.layers && data.layers.length > 0) {
     data.layers.forEach(function(l, i) {
       var rho = getRho(l.materialName);
@@ -77,18 +81,15 @@ function sendAcousticEmail(data) {
     });
   }
   htmlTable += "</table>";
-
   var resTable = "<table border='1' style='border-collapse: collapse; width: 100%; font-family: sans-serif; margin-top: 20px;'>" +
                  "<tr style='background-color: #e6f3ff;'><th>Parametar</th><th>Rezultat</th><th>Cilj</th></tr>" +
                  "<tr><td style='padding: 8px;'>Ukupna masa</td><td style='padding: 8px; text-align: center;'>" + (data.totalMass || "-") + "</td><td style='padding: 8px; text-align: center;'>-</td></tr>" +
                  "<tr><td style='padding: 8px;'><b>Zračna izolacija (Rw)</b></td><td style='padding: 8px; text-align: center;'><b>" + data.resultRw + "</b></td><td style='padding: 8px; text-align: center;'>≥ " + (data.reqRw || "52") + " dB</td></tr>";
-  
   if (data.resultLnw && data.resultLnw !== "N/A" && data.resultLnw !== "0 dB") {
     resTable += "<tr><td style='padding: 8px;'><b>Udarna buka (Lnw)</b></td><td style='padding: 8px; text-align: center;'><b>" + data.resultLnw + "</b></td><td style='padding: 8px; text-align: center;'>≤ " + (data.reqLnw || "55") + " dB</td></tr>";
   }
   resTable += "</table>";
-
-  var htmlBody = "<html><body style='font-family: sans-serif;'><h3>Izvještaj: " + (data.buildingName || "Novi projekt") + "</h3>" + htmlTable + "<h4>Rezultati</h4>" + resTable + "</body></html>";
+  var htmlBody = "<html><body>" + htmlTable + "<h4>Rezultati</h4>" + resTable + "</body></html>";
   MailApp.sendEmail({ to: data.email, subject: subject, htmlBody: htmlBody });
 }
 
