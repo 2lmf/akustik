@@ -740,6 +740,12 @@ function renderOpenings() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><input type="text" value="${op.name}" oninput="updateOpening(${index}, 'name', this.value)"></td>
+            <td>
+                <select onchange="updateOpening(${index}, 'type', this.value)">
+                    <option value="prozor" ${op.type === 'prozor' ? 'selected' : ''}>Prozor (4 str.)</option>
+                    <option value="vrata" ${op.type === 'vrata' ? 'selected' : ''}>Vrata (3 str.)</option>
+                </select>
+            </td>
             <td><input type="number" value="${op.w}" step="0.1" oninput="updateOpening(${index}, 'w', this.value)"></td>
             <td><input type="number" value="${op.h}" step="0.1" oninput="updateOpening(${index}, 'h', this.value)"></td>
             <td><input type="number" value="${op.count}" oninput="updateOpening(${index}, 'count', this.value)"></td>
@@ -753,7 +759,7 @@ function renderOpenings() {
 
 function addOpening() {
     const el = troskovnikElements.find(e => e.id === currentElementId);
-    el.openings.push({ name: 'Prozor', w: 1.2, h: 1.4, count: 1 });
+    el.openings.push({ name: 'Prozor', type: 'prozor', w: 1.2, h: 1.4, count: 1 });
     renderOpenings();
     renderTroskovnik();
 }
@@ -774,6 +780,7 @@ function updateOpening(index, field, val) {
 function calculateTroskovnik() {
     let totalBeton = 0;
     let totalOplata = 0;
+    let totalSpalete = 0;
 
     troskovnikElements.forEach(el => {
         const grossArea = el.l * el.h;
@@ -781,26 +788,37 @@ function calculateTroskovnik() {
 
         let netVolume = grossVolume;
         let netOplataArea = grossArea * 2; // Obostrano
+        let spaleteArea = 0;
 
         el.openings.forEach(op => {
             const opArea = op.w * op.h * op.count;
             const opVolume = opArea * (el.d / 100);
 
-            // Kod betona se ODUZIMA UVJEK
+            // Beton: uvijek se oduzima
             netVolume -= opVolume;
 
-            // Kod oplate samo ako je POJEDINAČNI otvor > praga
+            // Oplata: oduzima se ako je pojedinačni otvor > limite
             if ((op.w * op.h) > settings.oplataLimit) {
                 netOplataArea -= (opArea * 2);
             }
+
+            // Špalete: oplata rubova otvora
+            // Obujam (opseg) ovisi o tipu: prozor 4 strane, vrata 3 strane
+            const perimeter = (op.type === 'vrata') ? (op.w + 2 * op.h) : (2 * op.w + 2 * op.h);
+            spaleteArea += (perimeter * (el.d / 100)) * op.count;
         });
 
         totalBeton += netVolume;
         totalOplata += netOplataArea;
+        totalSpalete += spaleteArea;
     });
 
+    // Konačna oplata uključuje i špalete
+    const finalOplata = totalOplata + totalSpalete;
+
     document.getElementById('val-total-beton').innerText = `${totalBeton.toFixed(2)} m³`;
-    document.getElementById('val-total-oplata').innerText = `${totalOplata.toFixed(2)} m²`;
+    document.getElementById('val-total-oplata').innerText = `${finalOplata.toFixed(2)} m²`;
+    document.getElementById('val-total-spalete').innerText = `${totalSpalete.toFixed(2)} m²`;
     document.getElementById('val-total-armatura').innerText = `${Math.round(totalBeton * settings.armaturaRatio)} kg`;
 }
 
@@ -821,6 +839,7 @@ async function syncTroskovnik() {
         summary: {
             beton: document.getElementById('val-total-beton').innerText,
             oplata: document.getElementById('val-total-oplata').innerText,
+            spalete: document.getElementById('val-total-spalete').innerText,
             armatura: document.getElementById('val-total-armatura').innerText
         }
     };
