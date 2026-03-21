@@ -293,25 +293,79 @@ input:focus {
     top: 2rem;
 }
 
-.res-card {
+/* BoQ Results Grid */
+#tab-troskovnik .res-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+#tab-troskovnik .res-grid>div {
     background: var(--glass);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    border-radius: 12px;
+    text-align: center;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    transition: all 0.2s;
 }
 
-.res-value {
-    font-size: 1.5rem;
-    font-weight: 700;
+#tab-troskovnik .res-grid>div:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-.res-label {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+#tab-troskovnik .res-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--primary);
+    display: block;
+    margin-top: 0.25rem;
+}
+
+#tab-troskovnik .res-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Element Row Styling */
+.troskovnik-row {
+    background: white;
+    margin-bottom: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.element-header {
+    background: linear-gradient(to right, #f8fafc, #ffffff);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.input-name {
+    font-size: 1.2rem;
+}
+
+.element-dims {
+    background: #f1f5f9;
+    padding: 0.5rem 1rem;
+    border-radius: 99px;
+    gap: 1rem;
+}
+
+.element-dims input {
+    background: white;
+    font-weight: 600;
+    color: var(--primary);
 }
 
 .status-badge {
