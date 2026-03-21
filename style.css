@@ -341,20 +341,32 @@ input:focus {
 
 /* Prilog E Specifics */
 .prilog-e-card {
+    grid-column: span 3;
     margin-top: 2rem;
     border: 1px dashed var(--border);
     background: #fdfdfd;
     width: 100%;
-    padding: 2rem;
+    padding: 2.5rem;
+    min-height: 400px;
 }
 
 .prilog-e-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 1.5rem;
+    gap: 2rem;
+}
+
+.prilog-e-grid input,
+.prilog-e-grid select {
+    padding: 1rem;
+    font-size: 1rem;
 }
 
 @media (max-width: 900px) {
+    .prilog-e-card {
+        grid-column: span 1;
+    }
+
     .prilog-e-grid {
         grid-template-columns: 1fr 1fr;
     }
