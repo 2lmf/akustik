@@ -356,12 +356,6 @@ input:focus {
     gap: 2rem;
 }
 
-.prilog-e-grid input,
-.prilog-e-grid select {
-    padding: 1rem;
-    font-size: 1rem;
-}
-
 @media (max-width: 900px) {
     .prilog-e-card {
         grid-column: span 1;
